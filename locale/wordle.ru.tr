@@ -1,0 +1,61 @@
+# textdomain: wordle
+
+# ContentDB #
+Recreation of Wordle in Luanti, with some online features=Переиздание Wordle в Luanti с немного онлайн особенностями.
+
+# Command Description #
+Opens Wordle main menu=Открывает основное меню Wordle
+
+# Fields #
+Enter word=Введите слово
+Username=Имя пользователя
+Password=Пароль
+Max Attempts=Максимальное кол-во попыток
+
+# Labels #
+Online: @1=Онлайн: @1
+Guest=Гость
+@1 likes=@1 лайков
+Page @1 of @2=Страница @1 из @2
+Registration=Регистрация
+Login form=Форма входа
+The word was: @1=Словом было: @1
+
+# Buttons #
+Submit=Опубликовать
+Exit=Выйти
+Close=Закрыть
+Publish=Публикация
+Search=Поиск
+Login=Вход
+Register=Зарегестрироваться
+Like=Нравиться
+Unlike=Не нравиться
+Play=Играть
+Random word=Случайное слово
+Online words=Онлайн слова
+
+# Tooltips #
+Online words are made by players, and moderated by mod creator=Онлайн слова сделаны игроком, и модерированы создателем мода
+
+# Online Word Hypertext Info #
+Word=Слово
+Max=Максимум
+attempts=попыток
+Author=Автор
+Created=Создано
+Description=Описание
+
+# Messages #
+Registration successful!=Регистрация успешна!
+Publish successful!=Публикация успешна!
+Login successful!=Вход успешен!
+
+# Errors #
+Unknown=Неизвестно
+Server error=Ошибка сервера
+This word does not exist!=Этого слова не существует!
+Description is too big!=Описание слишком большое!
+The word must be between 3 and 5 characters long!=Слово должно быть между 3 и 5 символов в длину!
+Max attempts is empty!=Максимальное кол-во попыток пусто!
+Max attempts must be between 1 and 6!=Максимальное кол-во попыток должно быть между 1 и 6!

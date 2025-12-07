@@ -11,7 +11,7 @@ end
 loadfile(modpath .. "/api.lua")(http)
 
 core.register_chatcommand("wordle", {
-    description = "Opens Wordle main menu",
+    description = S("Opens Wordle main menu"),
     func = function(name)
         local fs = [[
             formspec_version[6]

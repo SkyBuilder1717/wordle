@@ -1,0 +1,61 @@
+# textdomain: wordle
+
+# ContentDB #
+Recreation of Wordle in Luanti, with some online features=
+
+# Command Description #
+Opens Wordle main menu=
+
+# Fields #
+Enter word=
+Username=
+Password=
+Max Attempts=
+
+# Labels #
+Online: @1=
+Guest=
+@1 likes=
+Page @1 of @2=
+Registration=
+Login form=
+The word was: @1=
+
+# Buttons #
+Submit=
+Exit=
+Close=
+Publish=
+Search=
+Login=
+Register=
+Like=
+Unlike=
+Play=
+Random word=
+Online words=
+
+# Tooltips #
+Online words are made by players, and moderated by mod creator=
+
+# Online Word Hypertext Info #
+Word=
+Max=
+attempts=
+Author=
+Created=
+Description=
+
+# Messages #
+Registration successful!=
+Publish successful!=
+Login successful!=
+
+# Errors #
+Unknown=
+Server error=
+This word does not exist!=
+Description is too big!=
+The word must be between 3 and 5 characters long!=
+Max attempts is empty!=
+Max attempts must be between 1 and 6!=

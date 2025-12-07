@@ -27,7 +27,7 @@ end
 local function clean_cache()
     local now = os.time()
     for key, t in pairs(wordle.cache_time) do
-        if now - t > 3600 then
+        if now - t > 300 then
             wordle.online_cache[key] = nil
             wordle.cache_time[key] = nil
         end
@@ -75,10 +75,10 @@ local function make_formspec(state)
 
     return ("formspec_version[6]size[7,10]" ..
            grid ..
-           "field[0.25,7.5;6.5,1;guess;%s;]" ..
+           "field[0.25,7.5;6.5,1;guess;%s:;]" ..
            "button[0.25,8.75;3,1;submit;%s]" ..
            "button_exit[3.75,8.75;3,1;exit;%s]"):format(
-            F(S("Enter word:")),
+            F(S("Enter word")),
             F(S("Submit")),
             F(S("Exit"))
            )
@@ -131,7 +131,7 @@ local function make_online_formspec(name, data, username)
     local total = data.total_pages
     local words = data.words or {}
     local fs = "formspec_version[6]size[10.5,10]"
-    fs = fs .. "label[0.25,0.6;" .. F(S("Online: @1", username or "Guest")) .. "]"
+    fs = fs .. "label[0.25,0.6;" .. F(S("Online: @1", username or S("Guest"))) .. "]"
     local positions = {
         {0.5, 1.3}, {5.3, 1.3},
         {0.5, 3.6}, {5.3, 3.6},
@@ -216,7 +216,7 @@ local function fetch_online_page(name, page, search, ignore_cache)
         return
     end
 
-    local plrnm = wordle.users_cache[name] and wordle.users_cache[name].player_name or "Guest"
+    local plrnm = wordle.users_cache[name] and wordle.users_cache[name].player_name or S("Guest")
 
     if not ignore_cache and wordle.online_cache[cache_key] then
         core.show_formspec(name, "wordle:online", make_online_formspec(name, wordle.online_cache[cache_key], plrnm))
@@ -248,12 +248,12 @@ function wordle.show_search(name)
     local fs = [[
         formspec_version[6]
         size[6,3]
-        field[0.3,0.5;5.4,1;query;%s;]
+        field[0.3,0.5;5.4,1;query;%s:;]
         button[0.3,1.75;2.5,1;submit;%s]
         button_exit[3.2,1.75;2.5,1;exit;%s]
     ]]
     core.show_formspec(name, "wordle:search", fs:format(
-        F(S("Search:")),
+        F(S("Search")),
         F(S("Submit")),
         F(S("Close"))
     ))
@@ -285,9 +285,9 @@ function wordle.show_word_info(name, item, liked)
         H(S("attempts")),
         H(S("Author")),
         (info.status == "mod" and "yellow") or (info.status == "banned" and "red") or "white",
-        item.author or "Unknown",
+        item.author or F(S("Unknown")),
         H(S("Created")),
-        item.created_at or "Unknown",
+        item.created_at or F(S("Unknown")),
         H(S("Description")),
         item.description or "—"
     ))
@@ -311,7 +311,7 @@ function wordle.show_register(name, error_msg)
     local fs = [[
         formspec_version[6]
         size[6,7]
-        label[0.3,0.375;Register]
+        label[0.3,0.375;%s]
         field[0.3,1.2;5.4,1;username;%s;]
         pwdfield[0.3,2.7;5.4,1;password;%s]
         button[0.3,4;5.4,1;submit;%s]
@@ -321,6 +321,7 @@ function wordle.show_register(name, error_msg)
         fs = fs .. "label[0.3,6.5;" .. core.colorize("#FF0000", F(error_msg)) .. "]"
     end
     core.show_formspec(name, "wordle:register", fs:format(
+        F(S("Registration")),
         F(S("Username")),
         F(S("Password")),
         F(S("Register")),
@@ -337,10 +338,10 @@ local function register_account(name, username, password)
     }, function(res)
         local data = core.parse_json(res.data or "{}")
         if not res.succeeded or data.error then
-            wordle.show_register(name, data.error or "Server error")
+            wordle.show_register(name, data.error or S("Server error"))
             return
         end
-        core.chat_send_player(name, "Registration successful!")
+        core.chat_send_player(name, S("Registration successful!"))
         wordle.show_login(name)
     end)
 end
@@ -353,10 +354,10 @@ local function publish_word(name, word, description, max_attempts)
     }, function(res)
         local data = core.parse_json(res.data or "{}")
         if not res.succeeded or data.error then
-            wordle.show_publish(name, data.error or "Server error")
+            wordle.show_publish(name, data.error or S("Server error"))
             return
         end
-        core.chat_send_player(name, "Publish successful!")
+        core.chat_send_player(name, S("Publish successful!"))
         fetch_online_page(name, 1, nil, true)
     end)
 end
@@ -387,7 +388,7 @@ function wordle.show_login(name, error_msg)
     local fs = [[
         formspec_version[6]
         size[6,7]
-        label[0.3,0.375;Login]
+        label[0.3,0.375;%s]
         field[0.3,1.2;5.4,1;username;%s;]
         pwdfield[0.3,2.7;5.4,1;password;%s]
         button[0.3,4;5.4,1;submit;%s]
@@ -397,6 +398,7 @@ function wordle.show_login(name, error_msg)
         fs = fs .. "label[0.3,6.5;" .. core.colorize("#FF0000", F(error_msg)) .. "]"
     end
     core.show_formspec(name, "wordle:login", fs:format(
+        F(S("Login form")),
         F(S("Username")),
         F(S("Password")),
         F(S("Login")),
@@ -412,7 +414,7 @@ local function login_account(name, username, password)
     }, function(res)
         local data = core.parse_json(res.data or "{}")
         if not res.succeeded or data.error then
-            wordle.show_login(name, data.error or "Server error")
+            wordle.show_login(name, data.error or S("Server error"))
             return
         end
 
@@ -422,7 +424,7 @@ local function login_account(name, username, password)
             player:get_meta():set_string(wordle.meta_key, data.session)
         end
 
-        core.chat_send_player(name, "Login successful!")
+        core.chat_send_player(name, S("Login successful!"))
         fetch_online_page(name, 1)
     end)
 end
