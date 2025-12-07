@@ -8,16 +8,6 @@ if not http then
     error("Add `wordle` into `secure.http_mods` for better experience!")
 end
 
-wordle = {
-    meta_key = "wordle.session_id",
-    active_games = {},
-    online_cache = {},
-    online_page = {},
-    online_search = {},
-    current_info = {},
-    sessions = {}
-}
-
 loadfile(modpath .. "/api.lua")(http)
 
 core.register_chatcommand("wordle", {

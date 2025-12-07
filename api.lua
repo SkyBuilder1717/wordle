@@ -1,14 +1,37 @@
+wordle = {
+    meta_key = "wordle.session_id",
+    active_games = {},
+    online_cache = {},
+    online_page = {},
+    online_search = {},
+    current_info = {},
+    sessions = {},
+    users_cache = {},
+    authors_cache = {},
+    cache_time = {}
+}
+
 local http = ...
 
 local modname = core.get_current_modname()
 local S = core.get_translator(modname)
 local F = core.formspec_escape
+local H = core.hypertext_escape
 
 local function show_loading(name)
     core.show_formspec(name, "wordle:loading",
-        "formspec_version[6]size[2,2]no_prepend[]bgcolor[#FFFFFF;true]" ..
-        "animated_image[0.5,0.5;1,1;spinner;wordle_loading.png;4;84]"
+        "formspec_version[6]size[2,2]no_prepend[]bgcolor[#FFFFFF;true]animated_image[0.5,0.5;1,1;spinner;wordle_loading.png;4;84]"
     )
+end
+
+local function clean_cache()
+    local now = os.time()
+    for key, t in pairs(wordle.cache_time) do
+        if now - t > 3600 then
+            wordle.online_cache[key] = nil
+            wordle.cache_time[key] = nil
+        end
+    end
 end
 
 function wordle.check_word_online(name, word, callback)
@@ -16,19 +39,13 @@ function wordle.check_word_online(name, word, callback)
     local url = "https://api.dictionaryapi.dev/api/v2/entries/en/" .. word
 
     http.fetch({ url = url, timeout = 5 }, function(result)
-        if result.succeeded and result.code == 200 then
-            callback(true)
-        else
-            callback(false)
-        end
+        callback(result.succeeded and result.code == 200)
     end)
 end
 
 function wordle.random_word(name, callback)
     show_loading(name)
-
     local url = "https://skybuilder.synology.me/wordle/daily/"
-
     http.fetch({ url = url, timeout = 5 }, function(result)
         callback(core.parse_json(result.data).word)
     end)
@@ -39,33 +56,26 @@ local function make_formspec(state)
     local attempt = state.attempt
     local word = state.word
     local grid = ""
-    
     for row = 1, state.max_attempts do
         local row_letters = letters[row] or {}
-
         for col = 1, #word do
             local tex = "wordle_background.png"
-
             local letter = row_letters[col]
             if letter then
                 local color = state.colors[row] and state.colors[row][col]
                 tex = tex .. "^wordle_" .. color .. ".png^wordle_letter_" .. letter .. ".png"
             end
-
-            grid = grid ..
-                string.format("image[%f,%f;1,1;%s]",
-                    (col - 1) + 0.5 + (0.25 * (col - 1)),
-                    (row - 1) + 0.5 + (0.075 * (row - 1)),
-                    tex
-                )
+            grid = grid .. string.format("image[%f,%f;1,1;%s]",
+                (col - 1) + 0.5 + (0.25 * (col - 1)),
+                (row - 1) + 0.5 + (0.075 * (row - 1)),
+                tex
+            )
         end
     end
 
-    return ("formspec_version[6]" ..
-           "size[7,10]" ..
+    return ("formspec_version[6]size[7,10]" ..
            grid ..
-           "field[0.25,7.5;6.5,1;guess;%s;" ..
-           "]" ..
+           "field[0.25,7.5;6.5,1;guess;%s;]" ..
            "button[0.25,8.75;3,1;submit;%s]" ..
            "button_exit[3.75,8.75;3,1;exit;%s]"):format(
             F(S("Enter word:")),
@@ -77,18 +87,15 @@ end
 local function evaluate_guess(guess, word)
     local result = {}
     local word_temp = {}
-
     for i = 1, #word do
         word_temp[i] = word:sub(i,i)
     end
-
     for i = 1, #word do
         if guess:sub(i,i) == word:sub(i,i) then
             result[i] = "green"
             word_temp[i] = nil
         end
     end
-
     for i = 1, #word do
         if not result[i] then
             local g = guess:sub(i,i)
@@ -103,13 +110,11 @@ local function evaluate_guess(guess, word)
             result[i] = found and "yellow" or "grey"
         end
     end
-
     return result
 end
 
 function wordle.start_game(name, word, max_attempts, online)
     word = word:lower()
-
     wordle.active_games[name] = {
         word = word,
         max_attempts = max_attempts or 6,
@@ -118,18 +123,15 @@ function wordle.start_game(name, word, max_attempts, online)
         colors = {},
         online = online
     }
-
     core.show_formspec(name, "wordle:game", make_formspec(wordle.active_games[name]))
 end
 
-local function make_online_formspec(name, data)
+local function make_online_formspec(name, data, username)
     local page = data.page
     local total = data.total_pages
     local words = data.words or {}
-
     local fs = "formspec_version[6]size[10.5,10]"
-    fs = fs .. "label[0.5,0.6;" .. F(S("Online words")) .. "]"
-
+    fs = fs .. "label[0.25,0.6;" .. F(S("Online: @1", username or "Guest")) .. "]"
     local positions = {
         {0.5, 1.3}, {5.3, 1.3},
         {0.5, 3.6}, {5.3, 3.6},
@@ -148,129 +150,97 @@ local function make_online_formspec(name, data)
         end
     end
 
-    local buttons = (
-        "button[7,0.3;3,0.8;login;%s]" ..
-        "button[3.9,0.3;3,0.8;register;%s]"):format(
-            F(S("Login")),
-            F(S("Register"))
-        )
-
+    local buttons
     if wordle.sessions[name] then
-        buttons = (
-        "button[7,0.3;3,0.8;publish;%s]" ..
-        "button[3.9,0.3;3,0.8;search;%s]"):format(
+        buttons = ("button[7,0.3;3,0.8;publish;%s]button[3.9,0.3;3,0.8;search;%s]"):format(
             F(S("Publish")),
             F(S("Search"))
         )
+    else
+        buttons = ("button[7,0.3;3,0.8;login;%s]button[3.9,0.3;3,0.8;register;%s]"):format(
+            F(S("Login")),
+            F(S("Register"))
+        )
     end
 
-    fs = (fs ..
+    fs = fs ..
         "button[3.9,8.6;3,0.8;previous;<]" ..
         "button[7,8.6;3,0.8;next;>]" ..
-        "label[0.5,9;%s]" .. buttons):format(
-            F(S("Page @1 of @2", page, total))
-        )
+        "label[0.5,9;" .. F(S("Page @1 of @2", page, total)) .. "]" ..
+        buttons
 
     return fs
 end
 
 local function is_liked(name, word, callback)
     show_loading(name)
-
     local url = "https://skybuilder.synology.me/wordle/liked/?word=" .. word .. "&session=" .. wordle.sessions[name]
-
     http.fetch({ url = url, timeout = 5 }, function(res)
-        if not res.succeeded then
-            core.chat_send_player(name, "Failed to load likes!")
-            return
-        end
-
         local data = core.parse_json(res.data)
-        if not data or not res.succeeded then
-            core.chat_send_player(name, "Invalid server response!")
-            return
-        end
-
-        callback(data.liked)
+        callback(data and data.liked)
     end)
 end
 
 local function like_word(name, word, callback)
     show_loading(name)
-
     local url = "https://skybuilder.synology.me/wordle/like/?word=" .. word .. "&session=" .. wordle.sessions[name]
-
     http.fetch({ url = url, timeout = 5 }, function(res)
-        if not res.succeeded then
-            core.chat_send_player(name, "Failed to like word!")
-            return
-        end
-
-        local data = core.parse_json(res.data)
-        if not data or not res.succeeded then
-            core.chat_send_player(name, "Invalid server response!")
-            return
-        end
-
         callback()
     end)
 end
 
 local function unlike_word(name, word, callback)
     show_loading(name)
-
     local url = "https://skybuilder.synology.me/wordle/unlike/?word=" .. word .. "&session=" .. wordle.sessions[name]
-
     http.fetch({ url = url, timeout = 5 }, function(res)
-        if not res.succeeded then
-            core.chat_send_player(name, "Failed to unlike word!")
-            return
-        end
-
-        local data = core.parse_json(res.data)
-        if not data or not res.succeeded then
-            core.chat_send_player(name, "Invalid server response!")
-            return
-        end
-
         callback()
     end)
 end
 
 local function fetch_online_page(name, page, search, ignore_cache)
+    clean_cache()
+
     local cache_key = search and ("search:" .. search .. ":" .. page) or ("page:" .. page)
 
-    if wordle.online_cache[cache_key] and not ignore_cache then
-        core.show_formspec(name, "wordle:online", make_online_formspec(name, wordle.online_cache[cache_key]))
+    if wordle.sessions[name] and not wordle.users_cache[name] then
+        show_loading(name)
+        http.fetch({ url = "https://skybuilder.synology.me/wordle/account/?session=" .. wordle.sessions[name], timeout = 5 },
+            function(res)
+                local data = core.parse_json(res.data)
+                if data then
+                    wordle.users_cache[name] = data
+                end
+                fetch_online_page(name, page, search, ignore_cache)
+            end
+        )
+        return
+    end
+
+    local plrnm = wordle.users_cache[name] and wordle.users_cache[name].player_name or "Guest"
+
+    if not ignore_cache and wordle.online_cache[cache_key] then
+        core.show_formspec(name, "wordle:online", make_online_formspec(name, wordle.online_cache[cache_key], plrnm))
         wordle.online_page[name] = page
         wordle.online_search[name] = search
         return
     end
 
     show_loading(name)
-
     local url = "https://skybuilder.synology.me/wordle/words/?page=" .. page
     if search then
         url = url .. "&search=" .. core.encode_base64(search)
     end
 
     http.fetch({ url = url, timeout = 5 }, function(res)
-        if not res.succeeded then
-            core.chat_send_player(name, "Failed to load words!")
-            return
-        end
-
         local data = core.parse_json(res.data)
-        if not data then
-            core.chat_send_player(name, "Invalid server response!")
-            return
-        end
+        if not data then return end
 
         wordle.online_cache[cache_key] = data
+        wordle.cache_time[cache_key] = os.time()
+
         wordle.online_page[name] = page
         wordle.online_search[name] = search
-
-        core.show_formspec(name, "wordle:online", make_online_formspec(name, data))
+        core.show_formspec(name, "wordle:online", make_online_formspec(name, data, plrnm))
     end)
 end
 
@@ -282,7 +252,6 @@ function wordle.show_search(name)
         button[0.3,1.75;2.5,1;submit;%s]
         button_exit[3.2,1.75;2.5,1;exit;%s]
     ]]
-
     core.show_formspec(name, "wordle:search", fs:format(
         F(S("Search:")),
         F(S("Submit")),
@@ -291,15 +260,37 @@ function wordle.show_search(name)
 end
 
 function wordle.show_word_info(name, item, liked)
-    local text = S(
-        "<b>ID:</b> #@1@n<b>Word:</b> @2@n<b>Max</b>: @3 attempts@n<b>Author:</b> @4@n<b>Created:</b> @5@n<b>Description:</b> @6",
+    if not wordle.authors_cache[item.author] then
+        show_loading(name)
+        http.fetch({ url = "https://skybuilder.synology.me/wordle/profile/?username=" .. item.author, timeout = 5 },
+            function(res)
+                local data = core.parse_json(res.data)
+                if data then
+                    wordle.authors_cache[item.author] = data
+                end
+                wordle.show_word_info(name, item, liked)
+            end
+        )
+        return
+    end
+
+    local info = wordle.authors_cache[item.author]
+    local text = F(string.format(
+        "<b>ID:</b> #%s\n<b>%s:</b> %s\n<b>%s</b>: %s %s\n<b>%s:</b> <style color='%s'>%s</style>\n<b>%s:</b> %s\n<b>%s:</b> %s",
         item.id or "?",
+        H(S("Word")),
         string.rep("*", #item.word),
+        H(S("Max")),
         item.max_attempts or 6,
+        H(S("attempts")),
+        H(S("Author")),
+        (info.status == "mod" and "yellow") or (info.status == "banned" and "red") or "white",
         item.author or "Unknown",
+        H(S("Created")),
         item.created_at or "Unknown",
+        H(S("Description")),
         item.description or "—"
-    )
+    ))
 
     local fs = [[
         formspec_version[6]
@@ -308,7 +299,6 @@ function wordle.show_word_info(name, item, liked)
         button[0.2,6.6;3.7,1.3;play;%s]
         %s
     ]]
-
     wordle.current_info[name] = item
     core.show_formspec(name, "wordle:info", fs:format(
         F(text),
@@ -327,11 +317,9 @@ function wordle.show_register(name, error_msg)
         button[0.3,4;5.4,1;submit;%s]
         button_exit[0.3,5.2;5.4,1;exit;%s]
     ]]
-
     if error_msg then
         fs = fs .. "label[0.3,6.5;" .. core.colorize("#FF0000", F(error_msg)) .. "]"
     end
-
     core.show_formspec(name, "wordle:register", fs:format(
         F(S("Username")),
         F(S("Password")),
@@ -342,19 +330,16 @@ end
 
 local function register_account(name, username, password)
     show_loading(name)
-
     local ip = core.get_player_ip(name) or "1.0.0.1"
     http.fetch({
         url = "https://skybuilder.synology.me/wordle/register/?username=" .. username .. "&password=" .. password .. "&ip=" .. ip,
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
-
         if not res.succeeded or data.error then
             wordle.show_register(name, data.error or "Server error")
             return
         end
-
         core.chat_send_player(name, "Registration successful!")
         wordle.show_login(name)
     end)
@@ -362,18 +347,15 @@ end
 
 local function publish_word(name, word, description, max_attempts)
     show_loading(name)
-
     http.fetch({
         url = "https://skybuilder.synology.me/wordle/publish/?word=" .. word .. "&description=" .. core.encode_base64(description) .. "&attempts=" .. max_attempts .. "&session=" .. wordle.sessions[name],
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
-
         if not res.succeeded or data.error then
             wordle.show_publish(name, data.error or "Server error")
             return
         end
-
         core.chat_send_player(name, "Publish successful!")
         fetch_online_page(name, 1, nil, true)
     end)
@@ -389,11 +371,9 @@ function wordle.show_publish(name, error_msg)
         button[0.3,9.4;4.9,1.4;submit;%s]
         button_exit[5.3,9.4;4.9,1.4;exit;%s]
     ]]
-
     if error_msg then
         fs = fs .. "label[0.3,9.1;" .. core.colorize("#FF0000", F(error_msg)) .. "]"
     end
-
     core.show_formspec(name, "wordle:publish", fs:format(
         F(S("Word")),
         F(S("Max Attempts")),
@@ -413,11 +393,9 @@ function wordle.show_login(name, error_msg)
         button[0.3,4;5.4,1;submit;%s]
         button_exit[0.3,5.2;5.4,1;exit;%s]
     ]]
-
     if error_msg then
         fs = fs .. "label[0.3,6.5;" .. core.colorize("#FF0000", F(error_msg)) .. "]"
     end
-
     core.show_formspec(name, "wordle:login", fs:format(
         F(S("Username")),
         F(S("Password")),
@@ -428,20 +406,17 @@ end
 
 local function login_account(name, username, password)
     show_loading(name)
-
     http.fetch({
         url = "https://skybuilder.synology.me/wordle/login/?username=" .. username .. "&password=" .. password,
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
-
         if not res.succeeded or data.error then
             wordle.show_login(name, data.error or "Server error")
             return
         end
 
         wordle.sessions[name] = data.session
-
         local player = core.get_player_by_name(name)
         if player then
             player:get_meta():set_string(wordle.meta_key, data.session)
@@ -451,6 +426,7 @@ local function login_account(name, username, password)
         fetch_online_page(name, 1)
     end)
 end
+
 
 core.register_on_player_receive_fields(function(player, formname, fields)
     local name = player:get_player_name()
@@ -673,8 +649,8 @@ core.register_on_player_receive_fields(function(player, formname, fields)
             if string.len(fields.desc) > 255 then
                 core.chat_send_player(name, core.colorize("red", S("Description is too big!")))
                 return
-            elseif string.len(fields.word) ~= 5 then
-                core.chat_send_player(name, core.colorize("red", S("The word must be 5 characters long!")))
+            elseif string.len(fields.word) < 3 or string.len(fields.word) > 5 then
+                core.chat_send_player(name, core.colorize("red", S("The word must be between 3 and 5 characters long!")))
                 return
             elseif not tonumber(fields.attempts) then
                 core.chat_send_player(name, core.colorize("red", S("Max attempts is empty!")))
