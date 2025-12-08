@@ -43,6 +43,8 @@ Word=Слово
 Max=Максимум
 attempts=попыток
 Author=Автор
+Played=Поиграли
+players=игроков
 Created=Создано
 Description=Описание
 
@@ -59,3 +61,4 @@ Description is too big!=Описание слишком большое!
 The word must be between 3 and 5 characters long!=Слово должно быть между 3 и 5 символов в длину!
 Max attempts is empty!=Максимальное кол-во попыток пусто!
 Max attempts must be between 1 and 6!=Максимальное кол-во попыток должно быть между 1 и 6!
+Online features are only available in multiplayer due to security concerns.=Онлайн особенности доступны только в мультиплеере для соблюдения безопасности.

@@ -276,7 +276,7 @@ function wordle.show_word_info(name, item, liked)
 
     local info = wordle.authors_cache[item.author]
     local text = F(string.format(
-        "<b>ID:</b> #%s\n<b>%s:</b> %s\n<b>%s</b>: %s %s\n<b>%s:</b> <style color='%s'>%s</style>\n<b>%s:</b> %s\n<b>%s:</b> %s",
+        "<b>ID:</b> #%s\n<b>%s:</b> %s\n<b>%s</b>: %s %s\n<b>%s:</b> <style color='%s'>%s</style>\n<b>%s</b>: %s %s\n<b>%s:</b> %s\n<b>%s:</b> %s",
         item.id or "?",
         H(S("Word")),
         string.rep("*", #item.word),
@@ -285,9 +285,12 @@ function wordle.show_word_info(name, item, liked)
         H(S("attempts")),
         H(S("Author")),
         (info.status == "mod" and "yellow") or (info.status == "banned" and "red") or "white",
-        item.author or F(S("Unknown")),
+        item.author or H(S("Unknown")),
+        H(S("Played")),
+        item.played or H(S("Unknown")),
+        H(S("players")),
         H(S("Created")),
-        item.created_at or F(S("Unknown")),
+        item.created_at or H(S("Unknown")),
         H(S("Description")),
         item.description or "—"
     ))
@@ -429,6 +432,98 @@ local function login_account(name, username, password)
     end)
 end
 
+local function show_win(name, game)
+    local winfs = "formspec_version[6]"..
+        "size[10.5,11]"..
+        "image[0,0;10.5,5.6;wordle_win.png]"..
+        "button_exit[0.1,9.8;10.3,1.1;exit;" .. F(S("Close")) .. "]" ..
+        "label[0.1,9.5;" .. F(S("The word was: @1", string.upper(game.word))) .. "]"
+
+    for row = 1, game.max_attempts do
+        local row_letters = game.letters[row] or {}
+
+        for col = 1, #game.word do
+            local tex = "wordle_background.png"
+
+            local letter = row_letters[col]
+            if letter then
+                local color = game.colors[row] and game.colors[row][col]
+                tex = tex .. "^wordle_" .. color .. "_mini.png"
+            end
+
+            winfs = winfs ..
+                string.format("image[%f,%f;0.5,0.5;%s]",
+                    (col - 1) * 0.5 + 4,
+                    (row - 1) * 0.5 + 5.6,
+                    tex
+                )
+        end
+    end
+
+    core.show_formspec(name, "wordle:win",
+        winfs)
+end
+
+local function show_lose(name, game)
+    local losefs = "formspec_version[6]"..
+        "size[10.5,11]"..
+        "image[0,0;10.5,5.6;wordle_lose.png]"..
+        "button_exit[0.1,9.8;10.3,1.1;exit;" .. F(S("Close")) .. "]" ..
+        "label[0.1,9.5;" .. F(S("The word was: @1", string.upper(game.word))) .. "]"
+
+    for row = 1, game.max_attempts do
+        local row_letters = game.letters[row] or {}
+
+        for col = 1, #game.word do
+            local tex = "wordle_background.png"
+
+            local letter = row_letters[col]
+            if letter then
+                local color = game.colors[row] and game.colors[row][col]
+                tex = tex .. "^wordle_" .. color .. "_mini.png"
+            end
+
+            losefs = losefs ..
+                string.format("image[%f,%f;0.5,0.5;%s]",
+                    (col - 1) * 0.5 + 4,
+                    (row - 1) * 0.5 + 5.6,
+                    tex
+                )
+        end
+    end
+
+    core.show_formspec(name, "wordle:lose",
+        losefs)
+end
+
+local function end_screen(name, data)
+    if data.is_won then
+        show_win(name, data.game)
+    else
+        show_lose(name, data.game)
+    end
+end
+
+local function played_word(name, word, won)
+    wordle.active_games[name] = nil
+    show_loading(name)
+    if not wordle.sessions[name] or not word or not won then
+        end_screen(name, won)
+        return
+    end
+    http.fetch({
+        url = "https://skybuilder.synology.me/wordle/complete/?word=" .. word .. "&session=" .. wordle.sessions[name],
+        timeout = 5
+    }, function(res)
+        local data = core.parse_json(res.data or "{}")
+        if not res.succeeded or data.error then
+            core.chat_send_player(name, data.error or S("Server error"))
+            return
+        end
+
+        end_screen(name, won)
+    end)
+end
 
 core.register_on_player_receive_fields(function(player, formname, fields)
     local name = player:get_player_name()
@@ -463,36 +558,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
                 game.colors[row] = result
 
                 if guess == game.word then
-                    local winfs = "formspec_version[6]"..
-                        "size[10.5,11]"..
-                        "image[0,0;10.5,5.6;wordle_win.png]"..
-                        "button_exit[0.1,9.8;10.3,1.1;exit;" .. F(S("Close")) .. "]" ..
-                        "label[0.1,9.5;" .. F(S("The word was: @1", string.upper(game.word))) .. "]"
-
-                    for row = 1, game.max_attempts do
-                        local row_letters = game.letters[row] or {}
-
-                        for col = 1, #game.word do
-                            local tex = "wordle_background.png"
-
-                            local letter = row_letters[col]
-                            if letter then
-                                local color = game.colors[row] and game.colors[row][col]
-                                tex = tex .. "^wordle_" .. color .. "_mini.png"
-                            end
-
-                            winfs = winfs ..
-                                string.format("image[%f,%f;0.5,0.5;%s]",
-                                    (col - 1) * 0.5 + 4,
-                                    (row - 1) * 0.5 + 5.6,
-                                    tex
-                                )
-                        end
-                    end
-
-                    core.show_formspec(name, "wordle:win",
-                        winfs)
-                    wordle.active_games[name] = nil
+                    played_word(name, (game.online and game.online.id) or nil, {is_won = true, game = game})
                     return
                 end
 
@@ -506,35 +572,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
                 game.attempt = game.attempt + 1
 
                 if game.attempt > game.max_attempts then
-                    local losefs = "formspec_version[6]"..
-                        "size[10.5,11]"..
-                        "image[0,0;10.5,5.6;wordle_lose.png]"..
-                        "button_exit[0.1,9.8;10.3,1.1;exit;" .. F(S("Close")) .. "]" ..
-                        "label[0.1,9.5;" .. F(S("The word was: @1", string.upper(game.word))) .. "]"
-
-                    for row = 1, game.max_attempts do
-                        local row_letters = game.letters[row] or {}
-
-                        for col = 1, #game.word do
-                            local tex = "wordle_background.png"
-
-                            local letter = row_letters[col]
-                            if letter then
-                                local color = game.colors[row] and game.colors[row][col]
-                                tex = tex .. "^wordle_" .. color .. "_mini.png"
-                            end
-
-                            losefs = losefs ..
-                                string.format("image[%f,%f;0.5,0.5;%s]",
-                                    (col - 1) * 0.5 + 4,
-                                    (row - 1) * 0.5 + 5.6,
-                                    tex
-                                )
-                        end
-                    end
-
-                    core.show_formspec(name, "wordle:lose", losefs)
-                    wordle.active_games[name] = nil
+                    played_word(name, (game.online and game.online.id) or nil, {is_won = false, game = game})
                     return
                 end
 
@@ -602,6 +640,13 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 
     if formname == "wordle:register" then
         if fields.submit then
+            if string.len(fields.username) < 3 then
+                wordle.show_register(name, S("Username is too short!"))
+                return
+            elseif string.len(fields.password) < 3 then
+                wordle.show_register(name, S("Password is too short!"))
+                return
+            end
             register_account(name, fields.username, fields.password)
         end
         return true
@@ -619,7 +664,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
         if not item then return end
 
         if fields.play then
-            wordle.start_game(name, item.word, tonumber(item.max_attempts))
+            wordle.start_game(name, item.word, tonumber(item.max_attempts), item)
         end
 
         if fields.like then
@@ -649,16 +694,16 @@ core.register_on_player_receive_fields(function(player, formname, fields)
     if formname == "wordle:publish" then
         if fields.submit then
             if string.len(fields.desc) > 255 then
-                core.chat_send_player(name, core.colorize("red", S("Description is too big!")))
+                wordle.show_publish(name, S("Description is too big!"))
                 return
             elseif string.len(fields.word) < 3 or string.len(fields.word) > 5 then
-                core.chat_send_player(name, core.colorize("red", S("The word must be between 3 and 5 characters long!")))
+                wordle.show_publish(name, S("The word must be between 3 and 5 characters long!"))
                 return
             elseif not tonumber(fields.attempts) then
-                core.chat_send_player(name, core.colorize("red", S("Max attempts is empty!")))
+                wordle.show_publish(name, S("Max attempts is empty!"))
                 return
             elseif tonumber(fields.attempts) < 1 or tonumber(fields.attempts) > 6 then
-                core.chat_send_player(name, core.colorize("red", S("Max attempts must be between 1 and 6!")))
+                wordle.show_publish(name, S("Max attempts must be between 1 and 6!"))
                 return
             end
             publish_word(name, fields.word, fields.desc, fields.attempts)

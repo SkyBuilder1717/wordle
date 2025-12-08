@@ -43,6 +43,8 @@ Word=
 Max=
 attempts=
 Author=
+Played=
+players=
 Created=
 Description=
 
@@ -59,3 +61,4 @@ Description is too big!=
 The word must be between 3 and 5 characters long!=
 Max attempts is empty!=
 Max attempts must be between 1 and 6!=
+Online features are only available in multiplayer due to security concerns.=

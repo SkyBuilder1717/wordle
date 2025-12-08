@@ -11,12 +11,12 @@ end
 loadfile(modpath .. "/api.lua")(http)
 
 core.register_chatcommand("wordle", {
-    description = S("Opens Wordle main menu"),
+    description = S("Opens Worlanti main menu"),
     func = function(name)
         local fs = [[
             formspec_version[6]
             size[6,5]
-            image[0.25,0.1;5.5,1.315;wordle_logo.png]
+            image[0,0.1;6,1.35;wordle_logo.png]
             button[1,2;4,1;online;%s]
             tooltip[online;%s]
             button[1,3.25;4,1;random;%s]
@@ -35,7 +35,8 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 
     local name = player:get_player_name()
     if fields.online then
-        wordle.open_online_words(name)
+        if not core.is_singleplayer() then wordle.open_online_words(name)
+        else core.chat_send_player(name, core.colorize("red", S("Online features are only available in multiplayer due to security concerns."))) end
     end
     if fields.random then
         wordle.random_word(name, function(word)
