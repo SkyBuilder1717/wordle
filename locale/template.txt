@@ -1,7 +1,7 @@
 # textdomain: wordle
 
 # ContentDB #
-Recreation of Wordle in Luanti, with some online features=
+Recreation of the word game in Luanti, with some online features=
 
 # Command Description #
 Opens Wordle main menu=
