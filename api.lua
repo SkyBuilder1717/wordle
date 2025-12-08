@@ -1,5 +1,5 @@
-wordle = {
-    meta_key = "wordle.session_id",
+worlanti = {
+    meta_key = "worlanti.session_id",
     active_games = {},
     online_cache = {},
     online_page = {},
@@ -19,22 +19,22 @@ local F = core.formspec_escape
 local H = core.hypertext_escape
 
 local function show_loading(name)
-    core.show_formspec(name, "wordle:loading",
-        "formspec_version[6]size[2,2]no_prepend[]bgcolor[#FFFFFF;true]animated_image[0.5,0.5;1,1;spinner;wordle_loading.png;4;84]"
+    core.show_formspec(name, "worlanti:loading",
+        "formspec_version[6]size[2,2]no_prepend[]bgcolor[#FFFFFF;true]animated_image[0.5,0.5;1,1;spinner;worlanti_loading.png;4;84]"
     )
 end
 
 local function clean_cache()
     local now = os.time()
-    for key, t in pairs(wordle.cache_time) do
+    for key, t in pairs(worlanti.cache_time) do
         if now - t > 300 then
-            wordle.online_cache[key] = nil
-            wordle.cache_time[key] = nil
+            worlanti.online_cache[key] = nil
+            worlanti.cache_time[key] = nil
         end
     end
 end
 
-function wordle.check_word_online(name, word, callback)
+function worlanti.check_word_online(name, word, callback)
     show_loading(name)
     local url = "https://api.dictionaryapi.dev/api/v2/entries/en/" .. word
 
@@ -43,9 +43,9 @@ function wordle.check_word_online(name, word, callback)
     end)
 end
 
-function wordle.random_word(name, callback)
+function worlanti.random_word(name, callback)
     show_loading(name)
-    local url = "https://skybuilder.synology.me/wordle/daily/"
+    local url = "https://skybuilder.synology.me/worlanti/daily/"
     http.fetch({ url = url, timeout = 5 }, function(result)
         callback(core.parse_json(result.data).word)
     end)
@@ -59,11 +59,11 @@ local function make_formspec(state)
     for row = 1, state.max_attempts do
         local row_letters = letters[row] or {}
         for col = 1, #word do
-            local tex = "wordle_background.png"
+            local tex = "worlanti_background.png"
             local letter = row_letters[col]
             if letter then
                 local color = state.colors[row] and state.colors[row][col]
-                tex = tex .. "^wordle_" .. color .. ".png^wordle_letter_" .. letter .. ".png"
+                tex = tex .. "^worlanti_" .. color .. ".png^worlanti_letter_" .. letter .. ".png"
             end
             grid = grid .. string.format("image[%f,%f;1,1;%s]",
                 (col - 1) + 0.5 + (0.25 * (col - 1)),
@@ -113,9 +113,9 @@ local function evaluate_guess(guess, word)
     return result
 end
 
-function wordle.start_game(name, word, max_attempts, online)
+function worlanti.start_game(name, word, max_attempts, online)
     word = word:lower()
-    wordle.active_games[name] = {
+    worlanti.active_games[name] = {
         word = word,
         max_attempts = max_attempts or 6,
         attempt = 1,
@@ -123,7 +123,7 @@ function wordle.start_game(name, word, max_attempts, online)
         colors = {},
         online = online
     }
-    core.show_formspec(name, "wordle:game", make_formspec(wordle.active_games[name]))
+    core.show_formspec(name, "worlanti:game", make_formspec(worlanti.active_games[name]))
 end
 
 local function make_online_formspec(name, data, username)
@@ -151,7 +151,7 @@ local function make_online_formspec(name, data, username)
     end
 
     local buttons
-    if wordle.sessions[name] then
+    if worlanti.sessions[name] then
         buttons = ("button[7,0.3;3,0.8;publish;%s]button[3.9,0.3;3,0.8;search;%s]"):format(
             F(S("Publish")),
             F(S("Search"))
@@ -174,7 +174,7 @@ end
 
 local function is_liked(name, word, callback)
     show_loading(name)
-    local url = "https://skybuilder.synology.me/wordle/liked/?word=" .. word .. "&session=" .. wordle.sessions[name]
+    local url = "https://skybuilder.synology.me/worlanti/liked/?word=" .. word .. "&session=" .. worlanti.sessions[name]
     http.fetch({ url = url, timeout = 5 }, function(res)
         local data = core.parse_json(res.data)
         callback(data and data.liked)
@@ -183,7 +183,7 @@ end
 
 local function like_word(name, word, callback)
     show_loading(name)
-    local url = "https://skybuilder.synology.me/wordle/like/?word=" .. word .. "&session=" .. wordle.sessions[name]
+    local url = "https://skybuilder.synology.me/worlanti/like/?word=" .. word .. "&session=" .. worlanti.sessions[name]
     http.fetch({ url = url, timeout = 5 }, function(res)
         callback()
     end)
@@ -191,7 +191,7 @@ end
 
 local function unlike_word(name, word, callback)
     show_loading(name)
-    local url = "https://skybuilder.synology.me/wordle/unlike/?word=" .. word .. "&session=" .. wordle.sessions[name]
+    local url = "https://skybuilder.synology.me/worlanti/unlike/?word=" .. word .. "&session=" .. worlanti.sessions[name]
     http.fetch({ url = url, timeout = 5 }, function(res)
         callback()
     end)
@@ -202,13 +202,13 @@ local function fetch_online_page(name, page, search, ignore_cache)
 
     local cache_key = search and ("search:" .. search .. ":" .. page) or ("page:" .. page)
 
-    if wordle.sessions[name] and not wordle.users_cache[name] then
+    if worlanti.sessions[name] and not worlanti.users_cache[name] then
         show_loading(name)
-        http.fetch({ url = "https://skybuilder.synology.me/wordle/account/?session=" .. wordle.sessions[name], timeout = 5 },
+        http.fetch({ url = "https://skybuilder.synology.me/worlanti/account/?session=" .. worlanti.sessions[name], timeout = 5 },
             function(res)
                 local data = core.parse_json(res.data)
                 if data then
-                    wordle.users_cache[name] = data
+                    worlanti.users_cache[name] = data
                 end
                 fetch_online_page(name, page, search, ignore_cache)
             end
@@ -216,17 +216,17 @@ local function fetch_online_page(name, page, search, ignore_cache)
         return
     end
 
-    local plrnm = wordle.users_cache[name] and wordle.users_cache[name].player_name or S("Guest")
+    local plrnm = worlanti.users_cache[name] and worlanti.users_cache[name].player_name or S("Guest")
 
-    if not ignore_cache and wordle.online_cache[cache_key] then
-        core.show_formspec(name, "wordle:online", make_online_formspec(name, wordle.online_cache[cache_key], plrnm))
-        wordle.online_page[name] = page
-        wordle.online_search[name] = search
+    if not ignore_cache and worlanti.online_cache[cache_key] then
+        core.show_formspec(name, "worlanti:online", make_online_formspec(name, worlanti.online_cache[cache_key], plrnm))
+        worlanti.online_page[name] = page
+        worlanti.online_search[name] = search
         return
     end
 
     show_loading(name)
-    local url = "https://skybuilder.synology.me/wordle/words/?page=" .. page
+    local url = "https://skybuilder.synology.me/worlanti/words/?page=" .. page
     if search then
         url = url .. "&search=" .. core.encode_base64(search)
     end
@@ -235,16 +235,16 @@ local function fetch_online_page(name, page, search, ignore_cache)
         local data = core.parse_json(res.data)
         if not data then return end
 
-        wordle.online_cache[cache_key] = data
-        wordle.cache_time[cache_key] = os.time()
+        worlanti.online_cache[cache_key] = data
+        worlanti.cache_time[cache_key] = os.time()
 
-        wordle.online_page[name] = page
-        wordle.online_search[name] = search
-        core.show_formspec(name, "wordle:online", make_online_formspec(name, data, plrnm))
+        worlanti.online_page[name] = page
+        worlanti.online_search[name] = search
+        core.show_formspec(name, "worlanti:online", make_online_formspec(name, data, plrnm))
     end)
 end
 
-function wordle.show_search(name)
+function worlanti.show_search(name)
     local fs = [[
         formspec_version[6]
         size[6,3]
@@ -252,29 +252,29 @@ function wordle.show_search(name)
         button[0.3,1.75;2.5,1;submit;%s]
         button_exit[3.2,1.75;2.5,1;exit;%s]
     ]]
-    core.show_formspec(name, "wordle:search", fs:format(
+    core.show_formspec(name, "worlanti:search", fs:format(
         F(S("Search")),
         F(S("Submit")),
         F(S("Close"))
     ))
 end
 
-function wordle.show_word_info(name, item, liked)
-    if not wordle.authors_cache[item.author] then
+function worlanti.show_word_info(name, item, liked)
+    if not worlanti.authors_cache[item.author] then
         show_loading(name)
-        http.fetch({ url = "https://skybuilder.synology.me/wordle/profile/?username=" .. item.author, timeout = 5 },
+        http.fetch({ url = "https://skybuilder.synology.me/worlanti/profile/?username=" .. item.author, timeout = 5 },
             function(res)
                 local data = core.parse_json(res.data)
                 if data then
-                    wordle.authors_cache[item.author] = data
+                    worlanti.authors_cache[item.author] = data
                 end
-                wordle.show_word_info(name, item, liked)
+                worlanti.show_word_info(name, item, liked)
             end
         )
         return
     end
 
-    local info = wordle.authors_cache[item.author]
+    local info = worlanti.authors_cache[item.author]
     local text = F(string.format(
         "<b>ID:</b> #%s\n<b>%s:</b> %s\n<b>%s</b>: %s %s\n<b>%s:</b> <style color='%s'>%s</style>\n<b>%s</b>: %s %s\n<b>%s:</b> %s\n<b>%s:</b> %s",
         item.id or "?",
@@ -302,15 +302,15 @@ function wordle.show_word_info(name, item, liked)
         button[0.2,6.6;3.7,1.3;play;%s]
         %s
     ]]
-    wordle.current_info[name] = item
-    core.show_formspec(name, "wordle:info", fs:format(
+    worlanti.current_info[name] = item
+    core.show_formspec(name, "worlanti:info", fs:format(
         F(text),
         F(S("Play")),
-        (wordle.sessions[name] and "button[4.1,6.6;3.7,1.3;" .. ((liked and "unlike") or "like") .. ";" .. ((liked and F(S("Unlike"))) or F(S("Like"))) .. "]") or ""
+        (worlanti.sessions[name] and "button[4.1,6.6;3.7,1.3;" .. ((liked and "unlike") or "like") .. ";" .. ((liked and F(S("Unlike"))) or F(S("Like"))) .. "]") or ""
     ))
 end
 
-function wordle.show_register(name, error_msg)
+function worlanti.show_register(name, error_msg)
     local fs = [[
         formspec_version[6]
         size[6,7]
@@ -323,7 +323,7 @@ function wordle.show_register(name, error_msg)
     if error_msg then
         fs = fs .. "label[0.3,6.5;" .. core.colorize("#FF0000", F(error_msg)) .. "]"
     end
-    core.show_formspec(name, "wordle:register", fs:format(
+    core.show_formspec(name, "worlanti:register", fs:format(
         F(S("Registration")),
         F(S("Username")),
         F(S("Password")),
@@ -336,28 +336,28 @@ local function register_account(name, username, password)
     show_loading(name)
     local ip = core.get_player_ip(name) or "1.0.0.1"
     http.fetch({
-        url = "https://skybuilder.synology.me/wordle/register/?username=" .. username .. "&password=" .. password .. "&ip=" .. ip,
+        url = "https://skybuilder.synology.me/worlanti/register/?username=" .. username .. "&password=" .. password .. "&ip=" .. ip,
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
         if not res.succeeded or data.error then
-            wordle.show_register(name, data.error or S("Server error"))
+            worlanti.show_register(name, data.error or S("Server error"))
             return
         end
         core.chat_send_player(name, S("Registration successful!"))
-        wordle.show_login(name)
+        worlanti.show_login(name)
     end)
 end
 
 local function publish_word(name, word, description, max_attempts)
     show_loading(name)
     http.fetch({
-        url = "https://skybuilder.synology.me/wordle/publish/?word=" .. word .. "&description=" .. core.encode_base64(description) .. "&attempts=" .. max_attempts .. "&session=" .. wordle.sessions[name],
+        url = "https://skybuilder.synology.me/worlanti/publish/?word=" .. word .. "&description=" .. core.encode_base64(description) .. "&attempts=" .. max_attempts .. "&session=" .. worlanti.sessions[name],
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
         if not res.succeeded or data.error then
-            wordle.show_publish(name, data.error or S("Server error"))
+            worlanti.show_publish(name, data.error or S("Server error"))
             return
         end
         core.chat_send_player(name, S("Publish successful!"))
@@ -365,7 +365,7 @@ local function publish_word(name, word, description, max_attempts)
     end)
 end
 
-function wordle.show_publish(name, error_msg)
+function worlanti.show_publish(name, error_msg)
     local fs = [[
         formspec_version[6]
         size[10.5,11]
@@ -378,7 +378,7 @@ function wordle.show_publish(name, error_msg)
     if error_msg then
         fs = fs .. "label[0.3,9.1;" .. core.colorize("#FF0000", F(error_msg)) .. "]"
     end
-    core.show_formspec(name, "wordle:publish", fs:format(
+    core.show_formspec(name, "worlanti:publish", fs:format(
         F(S("Word")),
         F(S("Max Attempts")),
         F(S("Description")),
@@ -387,7 +387,7 @@ function wordle.show_publish(name, error_msg)
     ))
 end
 
-function wordle.show_login(name, error_msg)
+function worlanti.show_login(name, error_msg)
     local fs = [[
         formspec_version[6]
         size[6,7]
@@ -400,7 +400,7 @@ function wordle.show_login(name, error_msg)
     if error_msg then
         fs = fs .. "label[0.3,6.5;" .. core.colorize("#FF0000", F(error_msg)) .. "]"
     end
-    core.show_formspec(name, "wordle:login", fs:format(
+    core.show_formspec(name, "worlanti:login", fs:format(
         F(S("Login form")),
         F(S("Username")),
         F(S("Password")),
@@ -412,19 +412,19 @@ end
 local function login_account(name, username, password)
     show_loading(name)
     http.fetch({
-        url = "https://skybuilder.synology.me/wordle/login/?username=" .. username .. "&password=" .. password,
+        url = "https://skybuilder.synology.me/worlanti/login/?username=" .. username .. "&password=" .. password,
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
         if not res.succeeded or data.error then
-            wordle.show_login(name, data.error or S("Server error"))
+            worlanti.show_login(name, data.error or S("Server error"))
             return
         end
 
-        wordle.sessions[name] = data.session
+        worlanti.sessions[name] = data.session
         local player = core.get_player_by_name(name)
         if player then
-            player:get_meta():set_string(wordle.meta_key, data.session)
+            player:get_meta():set_string(worlanti.meta_key, data.session)
         end
 
         core.chat_send_player(name, S("Login successful!"))
@@ -435,7 +435,7 @@ end
 local function show_win(name, game)
     local winfs = "formspec_version[6]"..
         "size[10.5,11]"..
-        "image[0,0;10.5,5.6;wordle_win.png]"..
+        "image[0,0;10.5,5.6;worlanti_win.png]"..
         "button_exit[0.1,9.8;10.3,1.1;exit;" .. F(S("Close")) .. "]" ..
         "label[0.1,9.5;" .. F(S("The word was: @1", string.upper(game.word))) .. "]"
 
@@ -443,12 +443,12 @@ local function show_win(name, game)
         local row_letters = game.letters[row] or {}
 
         for col = 1, #game.word do
-            local tex = "wordle_background.png"
+            local tex = "worlanti_background.png"
 
             local letter = row_letters[col]
             if letter then
                 local color = game.colors[row] and game.colors[row][col]
-                tex = tex .. "^wordle_" .. color .. "_mini.png"
+                tex = tex .. "^worlanti_" .. color .. "_mini.png"
             end
 
             winfs = winfs ..
@@ -460,14 +460,14 @@ local function show_win(name, game)
         end
     end
 
-    core.show_formspec(name, "wordle:win",
+    core.show_formspec(name, "worlanti:win",
         winfs)
 end
 
 local function show_lose(name, game)
     local losefs = "formspec_version[6]"..
         "size[10.5,11]"..
-        "image[0,0;10.5,5.6;wordle_lose.png]"..
+        "image[0,0;10.5,5.6;worlanti_lose.png]"..
         "button_exit[0.1,9.8;10.3,1.1;exit;" .. F(S("Close")) .. "]" ..
         "label[0.1,9.5;" .. F(S("The word was: @1", string.upper(game.word))) .. "]"
 
@@ -475,12 +475,12 @@ local function show_lose(name, game)
         local row_letters = game.letters[row] or {}
 
         for col = 1, #game.word do
-            local tex = "wordle_background.png"
+            local tex = "worlanti_background.png"
 
             local letter = row_letters[col]
             if letter then
                 local color = game.colors[row] and game.colors[row][col]
-                tex = tex .. "^wordle_" .. color .. "_mini.png"
+                tex = tex .. "^worlanti_" .. color .. "_mini.png"
             end
 
             losefs = losefs ..
@@ -492,7 +492,7 @@ local function show_lose(name, game)
         end
     end
 
-    core.show_formspec(name, "wordle:lose",
+    core.show_formspec(name, "worlanti:lose",
         losefs)
 end
 
@@ -505,14 +505,14 @@ local function end_screen(name, data)
 end
 
 local function played_word(name, word, won)
-    wordle.active_games[name] = nil
+    worlanti.active_games[name] = nil
     show_loading(name)
-    if not wordle.sessions[name] or not word or not won then
+    if not worlanti.sessions[name] or not word or not won then
         end_screen(name, won)
         return
     end
     http.fetch({
-        url = "https://skybuilder.synology.me/wordle/complete/?word=" .. word .. "&session=" .. wordle.sessions[name],
+        url = "https://skybuilder.synology.me/worlanti/complete/?word=" .. word .. "&session=" .. worlanti.sessions[name],
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
@@ -527,12 +527,12 @@ end
 
 core.register_on_player_receive_fields(function(player, formname, fields)
     local name = player:get_player_name()
-    if formname == "wordle:game" then
-        local game = wordle.active_games[name]
+    if formname == "worlanti:game" then
+        local game = worlanti.active_games[name]
         if not game then return end
 
         if fields.exit then
-            wordle.active_games[name] = nil
+            worlanti.active_games[name] = nil
             return
         end
 
@@ -543,7 +543,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
                 return true
             end
 
-            wordle.check_word_online(name, guess, function(exists)
+            worlanti.check_word_online(name, guess, function(exists)
                 local row = game.attempt
                 game.letters[row] = {}
 
@@ -565,7 +565,7 @@ core.register_on_player_receive_fields(function(player, formname, fields)
                 if not exists then
                     game.letters[row] = {}
                     core.chat_send_player(name, core.colorize("red", S("This word does not exist!")))
-                    core.show_formspec(name, "wordle:game", make_formspec(game))
+                    core.show_formspec(name, "worlanti:game", make_formspec(game))
                     return
                 end
 
@@ -576,29 +576,29 @@ core.register_on_player_receive_fields(function(player, formname, fields)
                     return
                 end
 
-                core.show_formspec(name, "wordle:game", make_formspec(game))
+                core.show_formspec(name, "worlanti:game", make_formspec(game))
             end)
 
             return true
         end
 
-    elseif formname == "wordle:online" then
-        local page = wordle.online_page[name] or 1
-        local key = wordle.online_search[name]
-            and ("search:" .. wordle.online_search[name] .. ":" .. page)
+    elseif formname == "worlanti:online" then
+        local page = worlanti.online_page[name] or 1
+        local key = worlanti.online_search[name]
+            and ("search:" .. worlanti.online_search[name] .. ":" .. page)
             or  ("page:" .. page)
 
-        local data = wordle.online_cache[key]
+        local data = worlanti.online_cache[key]
         if not data then return end
 
         for _, item in pairs(data.words) do
             if fields["w_" .. item.id] then
-                if wordle.sessions[name] then
+                if worlanti.sessions[name] then
                     is_liked(name, item.id, function(liked)
-                        wordle.show_word_info(name, item, liked)
+                        worlanti.show_word_info(name, item, liked)
                     end)
                 else
-                    wordle.show_word_info(name, item, false)
+                    worlanti.show_word_info(name, item, false)
                 end
                 return
             end
@@ -606,45 +606,45 @@ core.register_on_player_receive_fields(function(player, formname, fields)
 
         if fields.next then
             local next_page = math.min(page + 1, data.total_pages)
-            fetch_online_page(name, next_page, wordle.online_search[name])
+            fetch_online_page(name, next_page, worlanti.online_search[name])
             return
         end
 
         if fields.previous then
             local prev_page = math.max(page - 1, 1)
-            fetch_online_page(name, prev_page, wordle.online_search[name])
+            fetch_online_page(name, prev_page, worlanti.online_search[name])
             return
         end
 
         if fields.login then
-            wordle.show_login(name)
+            worlanti.show_login(name)
             return
         end
 
         if fields.register then
-            wordle.show_register(name)
+            worlanti.show_register(name)
             return
         end
 
         if fields.search then
-            wordle.show_search(name)
+            worlanti.show_search(name)
             return
         end
 
         if fields.publish then
-            wordle.show_publish(name)
+            worlanti.show_publish(name)
             return
         end
 
     end
 
-    if formname == "wordle:register" then
+    if formname == "worlanti:register" then
         if fields.submit then
             if string.len(fields.username) < 3 then
-                wordle.show_register(name, S("Username is too short!"))
+                worlanti.show_register(name, S("Username is too short!"))
                 return
             elseif string.len(fields.password) < 3 then
-                wordle.show_register(name, S("Password is too short!"))
+                worlanti.show_register(name, S("Password is too short!"))
                 return
             end
             register_account(name, fields.username, fields.password)
@@ -652,37 +652,37 @@ core.register_on_player_receive_fields(function(player, formname, fields)
         return true
     end
 
-    if formname == "wordle:login" then
+    if formname == "worlanti:login" then
         if fields.submit then
             login_account(name, fields.username, fields.password)
         end
         return true
     end
 
-    if formname == "wordle:info" then
-        local item = wordle.current_info[name]
+    if formname == "worlanti:info" then
+        local item = worlanti.current_info[name]
         if not item then return end
 
         if fields.play then
-            wordle.start_game(name, item.word, tonumber(item.max_attempts), item)
+            worlanti.start_game(name, item.word, tonumber(item.max_attempts), item)
         end
 
         if fields.like then
             like_word(name, item.id, function()
-                wordle.show_word_info(name, item, true)
+                worlanti.show_word_info(name, item, true)
             end)
         end
 
         if fields.unlike then
             unlike_word(name, item.id, function()
-                wordle.show_word_info(name, item, false)
+                worlanti.show_word_info(name, item, false)
             end)
         end
 
         return true
     end
 
-    if formname == "wordle:search" then
+    if formname == "worlanti:search" then
         if fields.submit and fields.query and fields.query ~= "" then
             local query = fields.query
 
@@ -691,19 +691,19 @@ core.register_on_player_receive_fields(function(player, formname, fields)
         return true
     end
 
-    if formname == "wordle:publish" then
+    if formname == "worlanti:publish" then
         if fields.submit then
             if string.len(fields.desc) > 255 then
-                wordle.show_publish(name, S("Description is too big!"))
+                worlanti.show_publish(name, S("Description is too big!"))
                 return
             elseif string.len(fields.word) < 3 or string.len(fields.word) > 5 then
-                wordle.show_publish(name, S("The word must be between 3 and 5 characters long!"))
+                worlanti.show_publish(name, S("The word must be between 3 and 5 characters long!"))
                 return
             elseif not tonumber(fields.attempts) then
-                wordle.show_publish(name, S("Max attempts is empty!"))
+                worlanti.show_publish(name, S("Max attempts is empty!"))
                 return
             elseif tonumber(fields.attempts) < 1 or tonumber(fields.attempts) > 6 then
-                wordle.show_publish(name, S("Max attempts must be between 1 and 6!"))
+                worlanti.show_publish(name, S("Max attempts must be between 1 and 6!"))
                 return
             end
             publish_word(name, fields.word, fields.desc, fields.attempts)
@@ -712,6 +712,6 @@ core.register_on_player_receive_fields(function(player, formname, fields)
     end
 end)
 
-function wordle.open_online_words(name)
+function worlanti.open_online_words(name)
     fetch_online_page(name, 1)
 end

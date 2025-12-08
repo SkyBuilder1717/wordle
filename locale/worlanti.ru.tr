@@ -1,10 +1,10 @@
-# textdomain: wordle
+# textdomain: worlanti
 
 # ContentDB #
 Recreation of the word game in Luanti, with some online features=Переиздание словесной игры в Luanti с немного онлайн особенностями.
 
 # Command Description #
-Opens Wordle main menu=Открывает основное меню Wordle
+Opens worlanti main menu=Открывает основное меню worlanti
 
 # Fields #
 Enter word=Введите слово
