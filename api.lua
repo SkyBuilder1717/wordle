@@ -20,7 +20,7 @@ local H = core.hypertext_escape
 
 local function show_loading(name)
     core.show_formspec(name, "worlanti:loading",
-        "formspec_version[6]size[2,2]no_prepend[]bgcolor[#FFFFFF;true]animated_image[0.5,0.5;1,1;spinner;worlanti_loading.png;4;84]"
+        "formspec_version[6]size[2,2]no_prepend[]bgcolor[#FFFFFF;true]animated_image[0.5,0.5;1,1;spinner;wordle_loading.png;4;84]"
     )
 end
 
@@ -59,11 +59,11 @@ local function make_formspec(state)
     for row = 1, state.max_attempts do
         local row_letters = letters[row] or {}
         for col = 1, #word do
-            local tex = "worlanti_background.png"
+            local tex = "wordle_background.png"
             local letter = row_letters[col]
             if letter then
                 local color = state.colors[row] and state.colors[row][col]
-                tex = tex .. "^worlanti_" .. color .. ".png^worlanti_letter_" .. letter .. ".png"
+                tex = tex .. "^wordle_" .. color .. ".png^wordle_letter_" .. letter .. ".png"
             end
             grid = grid .. string.format("image[%f,%f;1,1;%s]",
                 (col - 1) + 0.5 + (0.25 * (col - 1)),
@@ -435,7 +435,7 @@ end
 local function show_win(name, game)
     local winfs = "formspec_version[6]"..
         "size[10.5,11]"..
-        "image[0,0;10.5,5.6;worlanti_win.png]"..
+        "image[0,0;10.5,5.6;wordle_win.png]"..
         "button_exit[0.1,9.8;10.3,1.1;exit;" .. F(S("Close")) .. "]" ..
         "label[0.1,9.5;" .. F(S("The word was: @1", string.upper(game.word))) .. "]"
 
@@ -443,12 +443,12 @@ local function show_win(name, game)
         local row_letters = game.letters[row] or {}
 
         for col = 1, #game.word do
-            local tex = "worlanti_background.png"
+            local tex = "wordle_background.png"
 
             local letter = row_letters[col]
             if letter then
                 local color = game.colors[row] and game.colors[row][col]
-                tex = tex .. "^worlanti_" .. color .. "_mini.png"
+                tex = tex .. "^wordle_" .. color .. "_mini.png"
             end
 
             winfs = winfs ..
@@ -467,7 +467,7 @@ end
 local function show_lose(name, game)
     local losefs = "formspec_version[6]"..
         "size[10.5,11]"..
-        "image[0,0;10.5,5.6;worlanti_lose.png]"..
+        "image[0,0;10.5,5.6;wordle_lose.png]"..
         "button_exit[0.1,9.8;10.3,1.1;exit;" .. F(S("Close")) .. "]" ..
         "label[0.1,9.5;" .. F(S("The word was: @1", string.upper(game.word))) .. "]"
 
@@ -475,12 +475,12 @@ local function show_lose(name, game)
         local row_letters = game.letters[row] or {}
 
         for col = 1, #game.word do
-            local tex = "worlanti_background.png"
+            local tex = "wordle_background.png"
 
             local letter = row_letters[col]
             if letter then
                 local color = game.colors[row] and game.colors[row][col]
-                tex = tex .. "^worlanti_" .. color .. "_mini.png"
+                tex = tex .. "^wordle_" .. color .. "_mini.png"
             end
 
             losefs = losefs ..

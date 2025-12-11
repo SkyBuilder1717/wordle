@@ -16,7 +16,7 @@ core.register_chatcommand("worlanti", {
         local fs = [[
             formspec_version[6]
             size[6,5]
-            image[0,0.1;6,1.35;worlanti_logo.png]
+            image[0,0.1;6,1.35;wordle_logo.png]
             button[1,2;4,1;online;%s]
             tooltip[online;%s]
             button[1,3.25;4,1;random;%s]
