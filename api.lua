@@ -45,7 +45,7 @@ end
 
 function worlanti.random_word(name, callback)
     show_loading(name)
-    local url = "https://skybuilder.synology.me/worlanti/daily/"
+    local url = "https://skybuilder1717.ru/worlanti/daily/"
     http.fetch({ url = url, timeout = 5 }, function(result)
         callback(core.parse_json(result.data).word)
     end)
@@ -174,7 +174,7 @@ end
 
 local function is_liked(name, word, callback)
     show_loading(name)
-    local url = "https://skybuilder.synology.me/worlanti/liked/?word=" .. word .. "&session=" .. worlanti.sessions[name]
+    local url = "https://skybuilder1717.ru/worlanti/liked/?word=" .. word .. "&session=" .. worlanti.sessions[name]
     http.fetch({ url = url, timeout = 5 }, function(res)
         local data = core.parse_json(res.data)
         callback(data and data.liked)
@@ -183,7 +183,7 @@ end
 
 local function like_word(name, word, callback)
     show_loading(name)
-    local url = "https://skybuilder.synology.me/worlanti/like/?word=" .. word .. "&session=" .. worlanti.sessions[name]
+    local url = "https://skybuilder1717.ru/worlanti/like/?word=" .. word .. "&session=" .. worlanti.sessions[name]
     http.fetch({ url = url, timeout = 5 }, function(res)
         callback()
     end)
@@ -191,7 +191,7 @@ end
 
 local function unlike_word(name, word, callback)
     show_loading(name)
-    local url = "https://skybuilder.synology.me/worlanti/unlike/?word=" .. word .. "&session=" .. worlanti.sessions[name]
+    local url = "https://skybuilder1717.ru/worlanti/unlike/?word=" .. word .. "&session=" .. worlanti.sessions[name]
     http.fetch({ url = url, timeout = 5 }, function(res)
         callback()
     end)
@@ -204,7 +204,7 @@ local function fetch_online_page(name, page, search, ignore_cache)
 
     if worlanti.sessions[name] and not worlanti.users_cache[name] then
         show_loading(name)
-        http.fetch({ url = "https://skybuilder.synology.me/worlanti/account/?session=" .. worlanti.sessions[name], timeout = 5 },
+        http.fetch({ url = "https://skybuilder1717.ru/worlanti/account/?session=" .. worlanti.sessions[name], timeout = 5 },
             function(res)
                 local data = core.parse_json(res.data)
                 if data then
@@ -226,7 +226,7 @@ local function fetch_online_page(name, page, search, ignore_cache)
     end
 
     show_loading(name)
-    local url = "https://skybuilder.synology.me/worlanti/words/?page=" .. page
+    local url = "https://skybuilder1717.ru/worlanti/words/?page=" .. page
     if search then
         url = url .. "&search=" .. core.encode_base64(search)
     end
@@ -262,7 +262,7 @@ end
 function worlanti.show_word_info(name, item, liked)
     if not worlanti.authors_cache[item.author] then
         show_loading(name)
-        http.fetch({ url = "https://skybuilder.synology.me/worlanti/profile/?username=" .. item.author, timeout = 5 },
+        http.fetch({ url = "https://skybuilder1717.ru/worlanti/profile/?username=" .. item.author, timeout = 5 },
             function(res)
                 local data = core.parse_json(res.data)
                 if data then
@@ -336,7 +336,7 @@ local function register_account(name, username, password)
     show_loading(name)
     local ip = core.get_player_ip(name) or "1.0.0.1"
     http.fetch({
-        url = "https://skybuilder.synology.me/worlanti/register/?username=" .. username .. "&password=" .. password .. "&ip=" .. ip,
+        url = "https://skybuilder1717.ru/worlanti/register/?username=" .. username .. "&password=" .. password .. "&ip=" .. ip,
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
@@ -352,7 +352,7 @@ end
 local function publish_word(name, word, description, max_attempts)
     show_loading(name)
     http.fetch({
-        url = "https://skybuilder.synology.me/worlanti/publish/?word=" .. word .. "&description=" .. core.encode_base64(description) .. "&attempts=" .. max_attempts .. "&session=" .. worlanti.sessions[name],
+        url = "https://skybuilder1717.ru/worlanti/publish/?word=" .. word .. "&description=" .. core.encode_base64(description) .. "&attempts=" .. max_attempts .. "&session=" .. worlanti.sessions[name],
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
@@ -412,7 +412,7 @@ end
 local function login_account(name, username, password)
     show_loading(name)
     http.fetch({
-        url = "https://skybuilder.synology.me/worlanti/login/?username=" .. username .. "&password=" .. password,
+        url = "https://skybuilder1717.ru/worlanti/login/?username=" .. username .. "&password=" .. password,
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
@@ -512,7 +512,7 @@ local function played_word(name, word, won)
         return
     end
     http.fetch({
-        url = "https://skybuilder.synology.me/worlanti/complete/?word=" .. word .. "&session=" .. worlanti.sessions[name],
+        url = "https://skybuilder1717.ru/worlanti/complete/?word=" .. word .. "&session=" .. worlanti.sessions[name],
         timeout = 5
     }, function(res)
         local data = core.parse_json(res.data or "{}")
